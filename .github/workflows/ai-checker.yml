@@ -27,3 +27,10 @@ jobs:
           
           # Just show the result for now
           cat response.json
+
+          if grep -q "PASS" response.json; then
+            echo "AI Approved!"
+          else
+            echo "AI Found Errors!"
+            exit 1
+          fi
