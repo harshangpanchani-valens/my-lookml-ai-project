@@ -4,4 +4,3 @@ view: users {
     type: number
     sql: ${TABLE}.id ;;
   }
-}

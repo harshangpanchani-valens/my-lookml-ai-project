@@ -3,5 +3,5 @@ view: events {
     type: string
     sql: ${TABLE}.event_name ;;
   }
-
+}
 # ERROR: Missing closing bracket here
