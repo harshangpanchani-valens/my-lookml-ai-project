@@ -14,23 +14,42 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          # This script sends the file to the AI
-          curl -X POST "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=$GEMINI_API_KEY" \
-          -H 'Content-Type: any/json' \
-          -d '{
-            "contents": [{
-              "parts":[{
-                "text": "Check this LookML code for syntax errors. If there is an error, describe it. If it is perfect, say PASS. Here is the code: $(cat sales_view.lkml)"
-              }]
-            }]
-          }' > response.json
-          
-          # Just show the result for now
-          cat response.json
+          # 1. Get the list of changed files (comparing current branch to main)
+          # We filter for files ending in .lkml
+          FILES=$(git diff --name-only origin/main...HEAD | grep '\.lkml$' || true)
 
-          if grep -q "PASS" response.json; then
-            echo "AI Approved!"
-          else
-            echo "AI Found Errors!"
-            exit 1
+          if [ -z "$FILES" ]; then
+            echo "No LookML files changed. Skipping AI check."
+            exit 0
           fi
+
+          echo "Files to check: $FILES"
+
+          # 2. Loop through each file
+          for FILE in $FILES; do
+            echo "Checking $FILE..."
+            
+            # Read file content and escape it for JSON
+            CONTENT=$(cat "$FILE")
+            
+            # 3. Send to AI
+            curl -X POST "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=$GEMINI_API_KEY" \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"contents\": [{
+                \"parts\":[{
+                  \"text\": \"Check this LookML code in the file $FILE for syntax errors. If there is an error, describe it. If it is perfect, say only the word PASS. Here is the code: $CONTENT\"
+                }]
+              }]
+            }" > response.json
+            
+            cat response.json
+
+            # 4. If any file fails, the whole process fails
+            if ! grep -q "PASS" response.json; then
+              echo "❌ Error found in $FILE"
+              exit 1
+            fi
+          done
+
+          echo "✅ All LookML files passed!"
