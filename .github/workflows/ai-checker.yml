@@ -9,6 +9,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Ask Gemini AI to Review
         env:
@@ -16,7 +18,7 @@ jobs:
         run: |
           # 1. Get the list of changed files (comparing current branch to main)
           # We filter for files ending in .lkml
-          FILES=$(git diff --name-only origin/main...HEAD | grep '\.lkml$' || true)
+          FILES=$(git diff --name-only remotes/origin/main...HEAD | grep '\.lkml$' || true)
 
           if [ -z "$FILES" ]; then
             echo "No LookML files changed. Skipping AI check."
